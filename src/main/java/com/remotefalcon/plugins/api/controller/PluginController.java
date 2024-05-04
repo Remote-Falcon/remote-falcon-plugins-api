@@ -1,10 +1,7 @@
 package com.remotefalcon.plugins.api.controller;
 
 import com.remotefalcon.plugins.api.aop.RequiresAccess;
-import com.remotefalcon.plugins.api.model.NextPlaylistResponse;
-import com.remotefalcon.plugins.api.model.SyncPlaylistRequest;
-import com.remotefalcon.plugins.api.model.UpdateNextScheduledRequest;
-import com.remotefalcon.plugins.api.model.UpdateWhatsPlayingRequest;
+import com.remotefalcon.plugins.api.model.*;
 import com.remotefalcon.plugins.api.response.PluginResponse;
 import com.remotefalcon.plugins.api.service.PluginService;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +18,12 @@ public class PluginController {
   public ResponseEntity<NextPlaylistResponse> nextPlaylistInQueue(@RequestParam(name = "updateQueue", required = false) Boolean updateQueue) {
     return this.pluginService.nextPlaylistInQueue(updateQueue);
   }
-//
-//  @PostMapping(value = "/updatePlaylistQueue")
-//  @RequiresAccess
-//  public ResponseEntity<PluginResponse> updatePlaylistQueue() {
-//    return this.pluginService.updatePlaylistQueue();
-//  }
+
+  @PostMapping(value = "/updatePlaylistQueue")
+  @RequiresAccess
+  public ResponseEntity<PluginResponse> updatePlaylistQueue() {
+    return this.pluginService.updatePlaylistQueue();
+  }
 
   @PostMapping(value = "/syncPlaylists")
   @RequiresAccess
@@ -51,49 +48,49 @@ public class PluginController {
   public ResponseEntity<PluginResponse> viewerControlMode() {
     return this.pluginService.viewerControlMode();
   }
-//
+
 //  @GetMapping(value = "/highestVotedPlaylist")
 //  @RequiresAccess
 //  public ResponseEntity<HighestVotedPlaylistResponse> highestVotedPlaylist() {
 //    return this.pluginService.highestVotedPlaylist();
 //  }
-//
-//  @PostMapping(value = "/pluginVersion")
-//  @RequiresAccess
-//  public ResponseEntity<PluginResponse> pluginVersion(@RequestBody PluginVersion request) {
-//    return this.pluginService.pluginVersion(request);
-//  }
-//
-//  @GetMapping(value = "/remotePreferences")
-//  @RequiresAccess
-//  public ResponseEntity<RemotePreferenceResponse> remotePreferences() {
-//    return this.pluginService.remotePreferences();
-//  }
-//
-//  @DeleteMapping(value = "/purgeQueue")
-//  @RequiresAccess
-//  public ResponseEntity<PluginResponse> purgeQueue() {
-//    return this.pluginService.purgeQueue();
-//  }
-//
-//  @DeleteMapping(value = "/resetAllVotes")
-//  @RequiresAccess
-//  public ResponseEntity<PluginResponse> resetAllVotes() {
-//    return this.pluginService.resetAllVotes();
-//  }
-//
-//  @PostMapping(value = "/toggleViewerControl")
-//  @RequiresAccess
-//  public ResponseEntity<PluginResponse> toggleViewerControl() {
-//    return this.pluginService.toggleViewerControl();
-//  }
-//
-//  @PostMapping(value = "/updateViewerControl")
-//  @RequiresAccess
-//  public ResponseEntity<PluginResponse> updateViewerControl(@RequestBody ViewerControlRequest request) {
-//    return this.pluginService.updateViewerControl(request);
-//  }
-//
+
+  @PostMapping(value = "/pluginVersion")
+  @RequiresAccess
+  public ResponseEntity<PluginResponse> pluginVersion(@RequestBody PluginVersion request) {
+    return this.pluginService.pluginVersion(request);
+  }
+
+  @GetMapping(value = "/remotePreferences")
+  @RequiresAccess
+  public ResponseEntity<RemotePreferenceResponse> remotePreferences() {
+    return this.pluginService.remotePreferences();
+  }
+
+  @DeleteMapping(value = "/purgeQueue")
+  @RequiresAccess
+  public ResponseEntity<PluginResponse> purgeQueue() {
+    return this.pluginService.purgeQueue();
+  }
+
+  @DeleteMapping(value = "/resetAllVotes")
+  @RequiresAccess
+  public ResponseEntity<PluginResponse> resetAllVotes() {
+    return this.pluginService.resetAllVotes();
+  }
+
+  @PostMapping(value = "/toggleViewerControl")
+  @RequiresAccess
+  public ResponseEntity<PluginResponse> toggleViewerControl() {
+    return this.pluginService.toggleViewerControl();
+  }
+
+  @PostMapping(value = "/updateViewerControl")
+  @RequiresAccess
+  public ResponseEntity<PluginResponse> updateViewerControl(@RequestBody ViewerControlRequest request) {
+    return this.pluginService.updateViewerControl(request);
+  }
+
 //  @PostMapping(value = "/updateManagedPsa")
 //  @RequiresAccess
 //  public ResponseEntity<PluginResponse> updateManagedPsa(@RequestBody ManagedPSARequest request) {
