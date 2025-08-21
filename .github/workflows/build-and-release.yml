@@ -15,8 +15,8 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  call_reusable:
-    uses: owner/repo/.github/workflows/sonar.yml@main
+  call-sonar:
+    uses: ./.github/workflows/sonar.yml
   build-and-push:
     name: Build image
     runs-on: ubuntu-latest
