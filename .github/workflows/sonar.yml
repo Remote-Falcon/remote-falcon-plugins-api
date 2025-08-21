@@ -1,5 +1,6 @@
 name: Sonar Analysis
 on:
+  workflow_dispatch:
   workflow_call:
     secrets:
       SONAR_TOKEN:
