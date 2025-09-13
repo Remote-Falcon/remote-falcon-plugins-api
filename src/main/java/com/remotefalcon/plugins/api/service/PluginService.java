@@ -1,5 +1,7 @@
 package com.remotefalcon.plugins.api.service;
 
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
 import com.remotefalcon.library.enums.ViewerControlMode;
 import com.remotefalcon.library.models.*;
 import com.remotefalcon.library.quarkus.entity.Show;
@@ -572,7 +574,6 @@ public class PluginService {
 
     public void fppHeartbeat() {
         Show show = showContext.getShow();
-        show.setLastFppHeartbeat(LocalDateTime.now());
-        this.showRepository.persistOrUpdate(show);
+        Show.mongoCollection().updateOne(Filters.eq("showToken", show.getShowToken()), Updates.set("lastFppHeartbeat", LocalDateTime.now()));
     }
 }
