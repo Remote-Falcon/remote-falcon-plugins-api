@@ -309,10 +309,20 @@ class PluginServiceTest {
 
     @Test
     void fppHeartbeat_updatesTimestamp_andPersists() {
-        assertNull(baseShow.getLastFppHeartbeat());
+        // Prepare a persisted Show matching the service's Mongo update behavior
+        baseShow.setShowToken("test-token");
+        baseShow.setLastFppHeartbeat(null);
+        com.remotefalcon.library.quarkus.entity.Show.mongoCollection().insertOne(baseShow);
+
+        assertNull(baseShow.getLastFppHeartbeat()); // in-memory object remains unchanged
+
         pluginService.fppHeartbeat();
-        assertNotNull(baseShow.getLastFppHeartbeat());
-        verify(showRepository, atLeastOnce()).persistOrUpdate(any(Show.class));
+
+        // Verify the database record has been updated
+        com.remotefalcon.library.quarkus.entity.Show dbShow =
+                com.remotefalcon.library.quarkus.entity.Show.find("showToken", "test-token").firstResult();
+        assertNotNull(dbShow);
+        assertNotNull(dbShow.getLastFppHeartbeat());
     }
 
     // Additional tests to cover private branches and internal logic
