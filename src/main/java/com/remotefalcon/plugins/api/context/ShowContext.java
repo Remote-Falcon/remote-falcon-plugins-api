@@ -9,5 +9,5 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ShowContext {
-    private Show show;
+  private Show show;
 }

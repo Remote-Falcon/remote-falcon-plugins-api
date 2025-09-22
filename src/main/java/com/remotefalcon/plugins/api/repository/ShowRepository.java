@@ -8,7 +8,7 @@ import java.util.Optional;
 
 @ApplicationScoped
 public class ShowRepository implements PanacheMongoRepository<Show> {
-    public Optional<Show> findByShowToken(String showToken) {
-        return find("showToken", showToken).firstResultOptional();
-    }
+  public Optional<Show> findByShowToken(String showToken) {
+    return find("showToken", showToken).firstResultOptional();
+  }
 }

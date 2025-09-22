@@ -16,42 +16,42 @@ import java.util.Optional;
 @RequestScoped
 public class ShowTokenFilter implements ContainerRequestFilter {
 
-    @Inject
-    ShowRepository showRepository;
+  @Inject
+  ShowRepository showRepository;
 
-    @Inject
-    ShowContext showContext;
+  @Inject
+  ShowContext showContext;
 
 
-    @Override
-    public void filter(ContainerRequestContext requestContext) {
-        String showToken = requestContext.getHeaderString("showtoken");
-        if (showToken == null) {
-            showToken = requestContext.getHeaderString("remotetoken");
-        }
-
-        if (showToken == null || showToken.isEmpty()) {
-            requestContext.abortWith(
-                    Response.status(Response.Status.UNAUTHORIZED)
-                            .entity("Missing or invalid show token")
-                            .build()
-            );
-            return;
-        }
-
-        Optional<Show> showOptional = this.showRepository.findByShowToken(showToken);
-        if (showOptional.isEmpty()) {
-            requestContext.abortWith(
-                    Response.status(Response.Status.NOT_FOUND)
-                            .entity("Show not found for the provided token")
-                            .build()
-            );
-            return;
-        }
-
-        Show show = showOptional.get();
-        showContext.setShow(show);
+  @Override
+  public void filter(ContainerRequestContext requestContext) {
+    String showToken = requestContext.getHeaderString("showtoken");
+    if (showToken == null) {
+      showToken = requestContext.getHeaderString("remotetoken");
     }
+
+    if (showToken == null || showToken.isEmpty()) {
+      requestContext.abortWith(
+          Response.status(Response.Status.UNAUTHORIZED)
+              .entity("Missing or invalid show token")
+              .build()
+      );
+      return;
+    }
+
+    Optional<Show> showOptional = this.showRepository.findByShowToken(showToken);
+    if (showOptional.isEmpty()) {
+      requestContext.abortWith(
+          Response.status(Response.Status.NOT_FOUND)
+              .entity("Show not found for the provided token")
+              .build()
+      );
+      return;
+    }
+
+    Show show = showOptional.get();
+    showContext.setShow(show);
+  }
 
 
 }

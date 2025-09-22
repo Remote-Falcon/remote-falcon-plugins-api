@@ -10,10 +10,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PluginResponse {
-    private String message;
-    private String currentPlaylist;
-    private String nextScheduledSequence;
-    private String viewerControlMode;
-    private Boolean viewerControlEnabled;
-    private Boolean managedPsaEnabled;
+  private String message;
+  private String currentPlaylist;
+  private String nextScheduledSequence;
+  private String viewerControlMode;
+  private Boolean viewerControlEnabled;
+  private Boolean managedPsaEnabled;
 }
