@@ -13,9 +13,6 @@ ARG OTEL_URI
 ENV MONGO_URI=${MONGO_URI}
 ENV OTEL_URI=${OTEL_URI}
 
-# Build the **native** image and inject the agent at build time
-# NOTE: quarkus.native.additional-build-args takes a comma-separated list; every item that
-# starts with -J is forwarded to the JVM that runs native-image.
 RUN ./gradlew clean build \
     -Dquarkus.package.jar.enabled=false \
     -Dquarkus.native.enabled=true \
