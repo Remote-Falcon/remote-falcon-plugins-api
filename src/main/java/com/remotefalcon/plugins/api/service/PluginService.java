@@ -109,11 +109,25 @@ public class PluginService {
   }
 
   private List<Sequence> getSequencesToDelete(SyncPlaylistRequest request, Show show) {
-    List<String> playlistNamesInRequest = request.getPlaylists().stream().map(SyncPlaylistDetails::getPlaylistName).toList();
+    Set<String> playlistNamesInRequest = request.getPlaylists().stream()
+        .map(SyncPlaylistDetails::getPlaylistName)
+        .filter(StringUtils::isNotEmpty)
+        .map(StringUtils::lowerCase)
+        .collect(Collectors.toSet());
+
+    List<Sequence> existingSequences = show.getSequences();
+    if (CollectionUtils.isEmpty(existingSequences)) {
+      return new ArrayList<>();
+    }
+
     List<Sequence> sequencesToDelete = new ArrayList<>();
     int inactiveSequenceOrder = request.getPlaylists().size() + 1;
-    for (Sequence existingSequence : show.getSequences()) {
-      if (!playlistNamesInRequest.contains(existingSequence.getName())) {
+    for (Sequence existingSequence : existingSequences) {
+      if (existingSequence == null) {
+        continue;
+      }
+      String normalizedExistingName = StringUtils.lowerCase(existingSequence.getName());
+      if (!playlistNamesInRequest.contains(normalizedExistingName)) {
         existingSequence.setActive(false);
         existingSequence.setIndex(null);
         existingSequence.setOrder(inactiveSequenceOrder);
@@ -125,9 +139,17 @@ public class PluginService {
   }
 
   private List<Sequence> addNewSequences(SyncPlaylistRequest request, Show show) {
-    Set<String> existingSequences = show.getSequences().stream().map(Sequence::getName).collect(Collectors.toSet());
+    List<Sequence> currentSequences = show.getSequences() != null ? show.getSequences() : new ArrayList<>();
+    Set<String> existingSequences = currentSequences.stream()
+        .filter(Objects::nonNull)
+        .map(Sequence::getName)
+        .filter(StringUtils::isNotEmpty)
+        .map(StringUtils::lowerCase)
+        .collect(Collectors.toSet());
+    Set<String> processedNames = new HashSet<>();
     List<Sequence> sequencesToSync = new ArrayList<>();
-    Optional<Sequence> lastSequenceInOrder = show.getSequences().stream()
+    Optional<Sequence> lastSequenceInOrder = currentSequences.stream()
+        .filter(Objects::nonNull)
         .filter(Sequence::getActive)
         .max(Comparator.comparing(Sequence::getOrder));
     int sequenceOrder = 0;
@@ -136,28 +158,42 @@ public class PluginService {
     }
     AtomicInteger atomicSequenceOrder = new AtomicInteger(sequenceOrder);
     for (SyncPlaylistDetails playlistInRequest : request.getPlaylists()) {
-      if (!existingSequences.contains(playlistInRequest.getPlaylistName())) {
-        sequencesToSync.add(Sequence.builder()
+      String playlistName = playlistInRequest.getPlaylistName();
+      if (StringUtils.isEmpty(playlistName)) {
+        continue;
+      }
+      String normalizedName = StringUtils.lowerCase(playlistName);
+      if (!processedNames.add(normalizedName)) {
+        continue;
+      }
+      if (!existingSequences.contains(normalizedName)) {
+        Sequence newSequence = Sequence.builder()
             .active(true)
-            .displayName(playlistInRequest.getPlaylistName())
+            .displayName(playlistName)
             .duration(playlistInRequest.getPlaylistDuration())
             .imageUrl("")
             .index(playlistInRequest.getPlaylistIndex() != null ? playlistInRequest.getPlaylistIndex() : -1)
-            .name(playlistInRequest.getPlaylistName())
+            .name(playlistName)
             .order(atomicSequenceOrder.get())
             .visible(true)
             .visibilityCount(0)
             .type(playlistInRequest.getPlaylistType() == null ? "SEQUENCE" : playlistInRequest.getPlaylistType())
-            .build());
+            .build();
+        sequencesToSync.add(newSequence);
+        existingSequences.add(normalizedName);
         atomicSequenceOrder.getAndIncrement();
       } else {
-        show.getSequences().forEach(sequence -> {
-          if (StringUtils.equalsIgnoreCase(sequence.getName(), playlistInRequest.getPlaylistName())) {
-            sequence.setIndex(playlistInRequest.getPlaylistIndex() != null ? playlistInRequest.getPlaylistIndex() : -1);
-            sequence.setActive(true);
-            sequencesToSync.add(sequence);
-          }
-        });
+        currentSequences.stream()
+            .filter(sequence -> sequence != null && StringUtils.equalsIgnoreCase(sequence.getName(), playlistName))
+            .findFirst()
+            .ifPresent(sequence -> {
+              sequence.setIndex(playlistInRequest.getPlaylistIndex() != null ? playlistInRequest.getPlaylistIndex() : -1);
+              sequence.setDuration(playlistInRequest.getPlaylistDuration());
+              sequence.setType(playlistInRequest.getPlaylistType() == null ? "SEQUENCE" : playlistInRequest.getPlaylistType());
+              sequence.setDisplayName(playlistName);
+              sequence.setActive(true);
+              sequencesToSync.add(sequence);
+            });
       }
     }
     return sequencesToSync;
@@ -645,3 +681,4 @@ public class PluginService {
     Show.mongoCollection().updateOne(Filters.eq("showToken", show.getShowToken()), Updates.set("lastFppHeartbeat", LocalDateTime.now()));
   }
 }
+
