@@ -86,7 +86,30 @@ public class PluginService {
 
   public PluginResponse syncPlaylists(SyncPlaylistRequest request) {
     Show show = showContext.getShow();
-    if (request.getPlaylists().size() > this.sequenceLimit) {
+    List<SyncPlaylistDetails> playlists = request.getPlaylists();
+    if (playlists.size() > this.sequenceLimit) {
+      throw new WebApplicationException(
+          Response.status(Response.Status.BAD_REQUEST)
+              .entity(PluginResponse.builder().message("Cannot sync more than " + this.sequenceLimit + " sequences").build())
+              .build()
+      );
+    }
+
+    Set<String> existingSequenceNames = Optional.ofNullable(show.getSequences())
+        .orElse(Collections.emptyList())
+        .stream()
+        .filter(Objects::nonNull)
+        .map(Sequence::getName)
+        .filter(StringUtils::isNotEmpty)
+        .map(StringUtils::lowerCase)
+        .collect(Collectors.toSet());
+    Set<String> combinedSequenceNames = new HashSet<>(existingSequenceNames);
+    combinedSequenceNames.addAll(playlists.stream()
+        .map(SyncPlaylistDetails::getPlaylistName)
+        .filter(StringUtils::isNotEmpty)
+        .map(StringUtils::lowerCase)
+        .collect(Collectors.toSet()));
+    if (combinedSequenceNames.size() > this.sequenceLimit) {
       throw new WebApplicationException(
           Response.status(Response.Status.BAD_REQUEST)
               .entity(PluginResponse.builder().message("Cannot sync more than " + this.sequenceLimit + " sequences").build())
