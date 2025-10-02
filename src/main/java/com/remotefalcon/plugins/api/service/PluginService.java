@@ -562,8 +562,8 @@ public class PluginService {
         boolean noGroupedSequencesHaveVotes = show.getVotes().stream()
             .noneMatch(vote -> vote.getSequence() == null || StringUtils.isNotEmpty(vote.getSequence().getGroup()));
 
-        //Vote resets should only happen if there are no grouped sequences with active votes
-        if (noGroupedSequencesHaveVotes) {
+        //Vote resets should only happen if there are no grouped sequences with active votes AND the winning sequence is not a PSA
+        if (noGroupedSequencesHaveVotes && !winningSequenceIsPSA) {
           //Reset votes
           if (show.getPreferences().getResetVotes()) {
             show.getVotes().clear();
