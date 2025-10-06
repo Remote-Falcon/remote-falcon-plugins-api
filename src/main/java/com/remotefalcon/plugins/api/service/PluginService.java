@@ -213,7 +213,6 @@ public class PluginService {
               sequence.setIndex(playlistInRequest.getPlaylistIndex() != null ? playlistInRequest.getPlaylistIndex() : -1);
               sequence.setDuration(playlistInRequest.getPlaylistDuration());
               sequence.setType(playlistInRequest.getPlaylistType() == null ? "SEQUENCE" : playlistInRequest.getPlaylistType());
-              sequence.setDisplayName(playlistName);
               sequence.setActive(true);
               sequencesToSync.add(sequence);
             });
