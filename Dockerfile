@@ -4,10 +4,6 @@ COPY . .
 
 RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
 
-# --- Datadog Java tracer (latest) ---
-RUN mkdir -p /opt/dd
-RUN curl -fsSL -o /opt/dd/dd-java-agent.jar https://dtdg.co/latest-java-tracer
-
 ARG MONGO_URI
 ARG OTEL_URI
 ENV MONGO_URI=${MONGO_URI}
@@ -19,10 +15,7 @@ RUN ./gradlew clean build \
   -Dquarkus.native.container-build=false \
   -Dquarkus.native.builder-image=graalvm \
   -Dquarkus.native.container-runtime=docker \
-  # -Dquarkus.native.additional-build-args="-J-javaagent:/opt/dd/dd-java-agent.jar" \
-  -Dquarkus.mongodb.connection-string=${MONGO_URI} \
-  -Dquarkus.otel.enabled=false \
-  -Dquarkus.otel.exporter.otlp.endpoint=${OTEL_URI}
+  -Dquarkus.mongodb.connection-string=${MONGO_URI}
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.2
 WORKDIR /app
@@ -43,8 +36,6 @@ USER 1001
 ENTRYPOINT [ \
   "/app/application", \
   "-Dquarkus.http.host=0.0.0.0", \
-  "-Dquarkus.mongodb.connection-string=${MONGO_URI}", \
-  "-Dquarkus.otel.exporter.otlp.endpoint=${OTEL_URI}", \
-  "-Dquarkus.otel.enabled=false" \
+  "-Dquarkus.mongodb.connection-string=${MONGO_URI}" \
   ]
 
