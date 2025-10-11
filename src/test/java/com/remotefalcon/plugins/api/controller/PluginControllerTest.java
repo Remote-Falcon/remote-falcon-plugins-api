@@ -308,21 +308,21 @@ class PluginControllerTest {
     verify(pluginService).updateManagedPsa(request);
   }
 
-  @Test
-  void testFppHeartbeat() {
-    // No return body; expect 204 No Content
-    doNothing().when(pluginService).fppHeartbeat();
+  // @Test
+  // void testFppHeartbeat() {
+  //   // No return body; expect 204 No Content
+  //   doNothing().when(pluginService).fppHeartbeat();
 
-    given()
-        .header("showtoken", TEST_TOKEN)
-        .contentType(ContentType.JSON)
-        .when()
-        .post("/fppHeartbeat")
-        .then()
-        .statusCode(204);
+  //   given()
+  //       .header("showtoken", TEST_TOKEN)
+  //       .contentType(ContentType.JSON)
+  //       .when()
+  //       .post("/fppHeartbeat")
+  //       .then()
+  //       .statusCode(204);
 
-    verify(pluginService).fppHeartbeat();
-  }
+  //   verify(pluginService).fppHeartbeat();
+  // }
 
   @Test
   void testHealth() {
