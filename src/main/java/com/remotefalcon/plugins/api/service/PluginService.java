@@ -125,16 +125,24 @@ public class PluginService {
     List<PsaSequence> updatedPsaSequences = this.updatePsaSequences(request, show);
 
     // Atomic updates for sequences and PSA sequences
-    Show.mongoCollection().updateOne(
-        Filters.eq("showToken", show.getShowToken()),
-        Updates.combine(
-            Updates.set("sequences", updatedSequences.stream().toList()),
-            Updates.set("psaSequences", updatedPsaSequences),
-            CollectionUtils.isEmpty(updatedPsaSequences)
-                ? Updates.set("preferences.psaEnabled", false)
-                : Updates.unset("")  // No-op if psaSequences not empty
-        )
-    );
+    if (CollectionUtils.isEmpty(updatedPsaSequences)) {
+      Show.mongoCollection().updateOne(
+          Filters.eq("showToken", show.getShowToken()),
+          Updates.combine(
+              Updates.set("sequences", updatedSequences.stream().toList()),
+              Updates.set("psaSequences", updatedPsaSequences),
+              Updates.set("preferences.psaEnabled", false)
+          )
+      );
+    } else {
+      Show.mongoCollection().updateOne(
+          Filters.eq("showToken", show.getShowToken()),
+          Updates.combine(
+              Updates.set("sequences", updatedSequences.stream().toList()),
+              Updates.set("psaSequences", updatedPsaSequences)
+          )
+      );
+    }
 
     return PluginResponse.builder().message("Success").build();
   }
