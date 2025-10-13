@@ -7,7 +7,6 @@ import com.remotefalcon.library.models.*;
 import com.remotefalcon.library.quarkus.entity.Show;
 import com.remotefalcon.plugins.api.context.ShowContext;
 import com.remotefalcon.plugins.api.model.*;
-import com.remotefalcon.plugins.api.repository.ShowRepository;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
@@ -28,9 +27,6 @@ public class PluginService {
   ShowContext showContext;
 
   @Inject
-  ShowRepository showRepository;
-
-  @Inject
   @ConfigProperty(name = "sequence.limit")
   int sequenceLimit;
 
@@ -49,9 +45,15 @@ public class PluginService {
     }
     this.updateVisibilityCounts(show, nextRequest.get());
 
-    show.getRequests().remove(nextRequest.get());
-
-    this.showRepository.persistOrUpdate(show);
+    // Atomic removal of the request and update visibility counts
+    Show.mongoCollection().updateOne(
+        Filters.eq("showToken", show.getShowToken()),
+        Updates.combine(
+            Updates.pull("requests", nextRequest.get()),
+            Updates.set("sequences", show.getSequences()),
+            Updates.set("sequenceGroups", show.getSequenceGroups())
+        )
+    );
 
     return NextPlaylistResponse.builder()
         .nextPlaylist(nextRequest.get().getSequence().getName())
@@ -119,15 +121,21 @@ public class PluginService {
     Set<Sequence> updatedSequences = new HashSet<>();
     updatedSequences.addAll(this.getSequencesToDelete(request, show));
     updatedSequences.addAll(this.addNewSequences(request, show));
-    show.setSequences(updatedSequences.stream().toList());
 
     List<PsaSequence> updatedPsaSequences = this.updatePsaSequences(request, show);
-    show.setPsaSequences(updatedPsaSequences);
-    if (CollectionUtils.isEmpty(updatedPsaSequences)) {
-      show.getPreferences().setPsaEnabled(false);
-    }
 
-    this.showRepository.persistOrUpdate(show);
+    // Atomic updates for sequences and PSA sequences
+    Show.mongoCollection().updateOne(
+        Filters.eq("showToken", show.getShowToken()),
+        Updates.combine(
+            Updates.set("sequences", updatedSequences.stream().toList()),
+            Updates.set("psaSequences", updatedPsaSequences),
+            CollectionUtils.isEmpty(updatedPsaSequences)
+                ? Updates.set("preferences.psaEnabled", false)
+                : Updates.unset("")  // No-op if psaSequences not empty
+        )
+    );
+
     return PluginResponse.builder().message("Success").build();
   }
 
@@ -307,10 +315,29 @@ public class PluginService {
 
       this.handleManagedPSA(sequencesPlayed, show, psaNamesLowerCase);
 
-      this.clearViewersVotedAndRequested(show);
+      // Atomic update for all the modified fields
+      Show.mongoCollection().updateOne(
+          Filters.eq("showToken", show.getShowToken()),
+          Updates.combine(
+              Updates.set("playingNow", request.getPlaylist()),
+              Updates.set("preferences.sequencesPlayed", sequencesPlayed),
+              Updates.set("sequences", sequences),
+              Updates.set("sequenceGroups", sequenceGroups),
+              Updates.set("requests.$[].viewerRequested", null),
+              Updates.set("votes.$[].viewersVoted", new ArrayList<>())
+          )
+      );
+    } else {
+      // Clear playing fields
+      Show.mongoCollection().updateOne(
+          Filters.eq("showToken", show.getShowToken()),
+          Updates.combine(
+              Updates.set("playingNow", ""),
+              Updates.set("playingNext", ""),
+              Updates.set("playingNextFromSchedule", "")
+          )
+      );
     }
-
-    this.showRepository.persistOrUpdate(show);
 
     return PluginResponse.builder().currentPlaylist(request.getPlaylist()).build();
   }
@@ -428,14 +455,6 @@ public class PluginService {
         .build());
   }
 
-  private void clearViewersVotedAndRequested(Show show) {
-    if (CollectionUtils.isNotEmpty(show.getRequests())) {
-      show.getRequests().forEach(request -> request.setViewerRequested(null));
-    }
-    if (CollectionUtils.isNotEmpty(show.getVotes())) {
-      show.getVotes().forEach(vote -> vote.setViewersVoted(new ArrayList<>()));
-    }
-  }
 
   public PluginResponse updateNextScheduledSequence(UpdateNextScheduledRequest request) {
     Show show = showContext.getShow();
@@ -447,13 +466,20 @@ public class PluginService {
       );
     }
     if (StringUtils.isEmpty(request.getSequence())) {
-      show.setPlayingNow("");
-      show.setPlayingNext("");
-      show.setPlayingNextFromSchedule("");
+      Show.mongoCollection().updateOne(
+          Filters.eq("showToken", show.getShowToken()),
+          Updates.combine(
+              Updates.set("playingNow", ""),
+              Updates.set("playingNext", ""),
+              Updates.set("playingNextFromSchedule", "")
+          )
+      );
     } else {
-      show.setPlayingNextFromSchedule(request.getSequence());
+      Show.mongoCollection().updateOne(
+          Filters.eq("showToken", show.getShowToken()),
+          Updates.set("playingNextFromSchedule", request.getSequence())
+      );
     }
-    this.showRepository.persistOrUpdate(show);
     return PluginResponse.builder().nextScheduledSequence(request.getSequence()).build();
   }
 
@@ -485,7 +511,6 @@ public class PluginService {
         }
       }
     }
-    this.showRepository.persistOrUpdate(show);
 
     return response;
   }
@@ -619,7 +644,16 @@ public class PluginService {
           }
         }
 
-        this.showRepository.persistOrUpdate(show);
+        // Atomic update for all changes
+        Show.mongoCollection().updateOne(
+            Filters.eq("showToken", show.getShowToken()),
+            Updates.combine(
+                Updates.set("votes", show.getVotes()),
+                Updates.set("stats", show.getStats()),
+                Updates.set("sequences", show.getSequences()),
+                Updates.set("psaSequences", show.getPsaSequences())
+            )
+        );
 
         //Return winning sequence
         return HighestVotedPlaylistResponse.builder()
@@ -633,9 +667,13 @@ public class PluginService {
 
   public PluginResponse pluginVersion(PluginVersion request) {
     Show show = showContext.getShow();
-    show.setPluginVersion(request.getPluginVersion());
-    show.setFppVersion(request.getFppVersion());
-    this.showRepository.persistOrUpdate(show);
+    Show.mongoCollection().updateOne(
+        Filters.eq("showToken", show.getShowToken()),
+        Updates.combine(
+            Updates.set("pluginVersion", request.getPluginVersion()),
+            Updates.set("fppVersion", request.getFppVersion())
+        )
+    );
     return PluginResponse.builder().message("Success").build();
   }
 
@@ -649,25 +687,36 @@ public class PluginService {
 
   public PluginResponse purgeQueue() {
     Show show = showContext.getShow();
-    show.setRequests(new ArrayList<>());
-    show.setVotes(new ArrayList<>());
-    this.showRepository.persistOrUpdate(show);
+    Show.mongoCollection().updateOne(
+        Filters.eq("showToken", show.getShowToken()),
+        Updates.combine(
+            Updates.set("requests", new ArrayList<>()),
+            Updates.set("votes", new ArrayList<>())
+        )
+    );
     return PluginResponse.builder().message("Success").build();
   }
 
   public PluginResponse resetAllVotes() {
     Show show = showContext.getShow();
-    show.setVotes(new ArrayList<>());
-    this.showRepository.persistOrUpdate(show);
+    Show.mongoCollection().updateOne(
+        Filters.eq("showToken", show.getShowToken()),
+        Updates.set("votes", new ArrayList<>())
+    );
     return PluginResponse.builder().message("Success").build();
   }
 
   public PluginResponse toggleViewerControl() {
     Show show = showContext.getShow();
-    show.getPreferences().setViewerControlEnabled(!show.getPreferences().getViewerControlEnabled());
-    show.getPreferences().setSequencesPlayed(0);
-    this.showRepository.persistOrUpdate(show);
-    return PluginResponse.builder().viewerControlEnabled(!show.getPreferences().getViewerControlEnabled()).build();
+    boolean newValue = !show.getPreferences().getViewerControlEnabled();
+    Show.mongoCollection().updateOne(
+        Filters.eq("showToken", show.getShowToken()),
+        Updates.combine(
+            Updates.set("preferences.viewerControlEnabled", newValue),
+            Updates.set("preferences.sequencesPlayed", 0)
+        )
+    );
+    return PluginResponse.builder().viewerControlEnabled(newValue).build();
   }
 
   public PluginResponse updateViewerControl(ViewerControlRequest request) {
@@ -679,9 +728,12 @@ public class PluginService {
               .build()
       );
     }
-    show.getPreferences().setViewerControlEnabled(StringUtils.equalsIgnoreCase("Y", request.getViewerControlEnabled())); //HERE
-    this.showRepository.persistOrUpdate(show);
-    return PluginResponse.builder().viewerControlEnabled(StringUtils.equalsIgnoreCase("Y", request.getViewerControlEnabled())).build();
+    boolean enabled = StringUtils.equalsIgnoreCase("Y", request.getViewerControlEnabled());
+    Show.mongoCollection().updateOne(
+        Filters.eq("showToken", show.getShowToken()),
+        Updates.set("preferences.viewerControlEnabled", enabled)
+    );
+    return PluginResponse.builder().viewerControlEnabled(enabled).build();
   }
 
   public PluginResponse updateManagedPsa(ManagedPSARequest request) {
@@ -693,9 +745,12 @@ public class PluginService {
               .build()
       );
     }
-    show.getPreferences().setManagePsa(StringUtils.equalsIgnoreCase("Y", request.getManagedPsaEnabled()));
-    this.showRepository.persistOrUpdate(show);
-    return PluginResponse.builder().managedPsaEnabled(StringUtils.equalsIgnoreCase("Y", request.getManagedPsaEnabled())).build();
+    boolean enabled = StringUtils.equalsIgnoreCase("Y", request.getManagedPsaEnabled());
+    Show.mongoCollection().updateOne(
+        Filters.eq("showToken", show.getShowToken()),
+        Updates.set("preferences.managePsa", enabled)
+    );
+    return PluginResponse.builder().managedPsaEnabled(enabled).build();
   }
 
   public void fppHeartbeat() {

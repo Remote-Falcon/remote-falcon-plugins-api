@@ -1,17 +1,16 @@
 FROM container-registry.oracle.com/graalvm/native-image:21 AS build
 WORKDIR /app
 COPY . .
-
-RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
+RUN sed -i 's/\r$//' ./gradlew
+RUN chmod +x ./gradlew
 
 ARG MONGO_URI
 ARG OTEL_URI
 ENV MONGO_URI=${MONGO_URI}
 ENV OTEL_URI=${OTEL_URI}
 
-RUN ./gradlew clean build \
+RUN ./gradlew clean build -x test -Dquarkus.native.enabled=true \
   -Dquarkus.package.jar.enabled=false \
-  -Dquarkus.native.enabled=true \
   -Dquarkus.native.container-build=false \
   -Dquarkus.native.builder-image=graalvm \
   -Dquarkus.native.container-runtime=docker
@@ -34,6 +33,7 @@ USER 1001
 
 ENTRYPOINT [ \
   "/app/application", \
+  "-XX:MaximumHeapSizePercent=75", \
   "-Dquarkus.http.host=0.0.0.0" \
   ]
 

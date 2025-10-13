@@ -25,6 +25,12 @@ public class ShowTokenFilter implements ContainerRequestFilter {
 
   @Override
   public void filter(ContainerRequestContext requestContext) {
+    // Skip authentication for health check endpoint
+    String path = requestContext.getUriInfo().getPath();
+    if (path.endsWith("/actuator/health")) {
+      return;
+    }
+
     String showToken = requestContext.getHeaderString("showtoken");
     if (showToken == null) {
       showToken = requestContext.getHeaderString("remotetoken");
