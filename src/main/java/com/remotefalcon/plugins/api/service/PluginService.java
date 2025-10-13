@@ -323,6 +323,14 @@ public class PluginService {
 
       this.handleManagedPSA(sequencesPlayed, show, psaNamesLowerCase);
 
+      // Clear viewer flags before persisting
+      if (show.getRequests() != null) {
+        show.getRequests().forEach(req -> req.setViewerRequested(null));
+      }
+      if (show.getVotes() != null) {
+        show.getVotes().forEach(vote -> vote.setViewersVoted(new ArrayList<>()));
+      }
+
       // Atomic update for all the modified fields
       Show.mongoCollection().updateOne(
           Filters.eq("showToken", show.getShowToken()),
@@ -331,8 +339,9 @@ public class PluginService {
               Updates.set("preferences.sequencesPlayed", sequencesPlayed),
               Updates.set("sequences", sequences),
               Updates.set("sequenceGroups", sequenceGroups),
-              Updates.set("requests.$[].viewerRequested", null),
-              Updates.set("votes.$[].viewersVoted", new ArrayList<>())
+              Updates.set("psaSequences", show.getPsaSequences() != null ? show.getPsaSequences() : new ArrayList<>()),
+              Updates.set("requests", show.getRequests() != null ? show.getRequests() : new ArrayList<>()),
+              Updates.set("votes", show.getVotes() != null ? show.getVotes() : new ArrayList<>())
           )
       );
     } else {
@@ -408,36 +417,28 @@ public class PluginService {
       show.setVotes(new ArrayList<>());
     }
 
-    boolean isPsaInJukebox = show.getRequests().stream()
-        .map(Request::getSequence)
-        .filter(Objects::nonNull)
-        .map(Sequence::getName)
-        .filter(StringUtils::isNotEmpty)
-        .map(StringUtils::lowerCase)
-        .anyMatch(psaNamesLowerCase::contains);
-
-    if (!isPsaInJukebox) {
-      boolean isPsaInVotes = show.getVotes().stream()
-          .map(Vote::getSequence)
-          .filter(Objects::nonNull)
-          .map(Sequence::getName)
-          .filter(StringUtils::isNotEmpty)
-          .map(StringUtils::lowerCase)
-          .anyMatch(psaNamesLowerCase::contains);
-      if (!isPsaInVotes) {
-        show.getVotes().add(Vote.builder()
-            .sequence(requestedSequence)
-            .ownerVoted(false)
-            .lastVoteTime(LocalDateTime.now())
-            .votes(2000)
-            .build());
-      }
+    // Calculate the next position in the queue
+    int nextPosition = 1;
+    if (CollectionUtils.isNotEmpty(show.getRequests())) {
+      nextPosition = show.getRequests().stream()
+          .map(Request::getPosition)
+          .max(Integer::compareTo)
+          .orElse(0) + 1;
     }
 
+    // Always add PSA to votes with high priority (2000) for jukebox mode
+    show.getVotes().add(Vote.builder()
+        .sequence(requestedSequence)
+        .ownerVoted(false)
+        .lastVoteTime(LocalDateTime.now())
+        .votes(2000)
+        .build());
+
+    // Add PSA to requests at the next available position in the queue
     show.getRequests().add(Request.builder()
         .sequence(requestedSequence)
         .ownerRequested(false)
-        .position(0)
+        .position(nextPosition)
         .build());
   }
 
@@ -445,16 +446,8 @@ public class PluginService {
     if (show.getVotes() == null) {
       show.setVotes(new ArrayList<>());
     }
-    boolean isPsaInVotes = show.getVotes().stream()
-        .map(Vote::getSequence)
-        .filter(Objects::nonNull)
-        .map(Sequence::getName)
-        .filter(StringUtils::isNotEmpty)
-        .map(StringUtils::lowerCase)
-        .anyMatch(psaNamesLowerCase::contains);
-    if (isPsaInVotes) {
-      return;
-    }
+
+    // Always add PSA to votes with high priority (2000)
     show.getVotes().add(Vote.builder()
         .sequence(requestedSequence)
         .ownerVoted(false)
