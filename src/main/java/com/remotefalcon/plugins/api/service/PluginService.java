@@ -649,7 +649,7 @@ public class PluginService {
             Filters.eq("showToken", show.getShowToken()),
             Updates.combine(
                 Updates.set("votes", show.getVotes()),
-                Updates.set("stats", show.getStats()),
+                Updates.set("stats.votingWin", show.getStats().getVotingWin()),
                 Updates.set("sequences", show.getSequences()),
                 Updates.set("psaSequences", show.getPsaSequences())
             )
