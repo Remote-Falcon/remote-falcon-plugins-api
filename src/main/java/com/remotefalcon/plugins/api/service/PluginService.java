@@ -45,11 +45,11 @@ public class PluginService {
     }
     this.updateVisibilityCounts(show, nextRequest.get());
 
-    // Atomic removal of the request and update visibility counts
+    // Atomic removal of the request by position and update visibility counts
     Show.mongoCollection().updateOne(
         Filters.eq("showToken", show.getShowToken()),
         Updates.combine(
-            Updates.pull("requests", nextRequest.get()),
+            Updates.pull("requests", Filters.eq("position", nextRequest.get().getPosition())),
             Updates.set("sequences", show.getSequences()),
             Updates.set("sequenceGroups", show.getSequenceGroups())
         )
