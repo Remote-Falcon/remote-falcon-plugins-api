@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.Response;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -22,6 +23,8 @@ import java.util.stream.Collectors;
 
 @RequestScoped
 public class PluginService {
+
+  private static final Logger LOG = Logger.getLogger(PluginService.class);
 
   @Inject
   ShowContext showContext;
@@ -90,6 +93,8 @@ public class PluginService {
     Show show = showContext.getShow();
     List<SyncPlaylistDetails> playlists = request.getPlaylists();
     if (playlists.size() > this.sequenceLimit) {
+      LOG.warnf("syncPlaylists rejected for showToken=%s: requestPlaylists=%d exceeds limit=%d",
+          show.getShowToken(), playlists.size(), this.sequenceLimit);
       throw new WebApplicationException(
           Response.status(Response.Status.BAD_REQUEST)
               .entity(PluginResponse.builder().message("Cannot sync more than " + this.sequenceLimit + " sequences").build())
@@ -112,6 +117,8 @@ public class PluginService {
         .map(StringUtils::lowerCase)
         .collect(Collectors.toSet()));
     if (combinedSequenceNames.size() > this.sequenceLimit) {
+      LOG.warnf("syncPlaylists rejected for showToken=%s: existingSequences=%d, requestPlaylists=%d, combined=%d exceeds limit=%d",
+          show.getShowToken(), existingSequenceNames.size(), playlists.size(), combinedSequenceNames.size(), this.sequenceLimit);
       throw new WebApplicationException(
           Response.status(Response.Status.BAD_REQUEST)
               .entity(PluginResponse.builder().message("Cannot sync more than " + this.sequenceLimit + " sequences").build())
