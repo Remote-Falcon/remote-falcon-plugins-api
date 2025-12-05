@@ -263,6 +263,7 @@ public class PluginService {
     }
     Show show = showContext.getShow();
     if (show.getPreferences() == null) {
+      LOG.warnf("updateWhatsPlaying rejected for showToken=%s: preferences not found", show.getShowToken());
       throw new WebApplicationException(
           Response.status(Response.Status.BAD_REQUEST)
               .entity(PluginResponse.builder().message("Preferences not found").build())
@@ -467,6 +468,7 @@ public class PluginService {
   public PluginResponse updateNextScheduledSequence(UpdateNextScheduledRequest request) {
     Show show = showContext.getShow();
     if (show.getPreferences() == null) {
+      LOG.warnf("updateNextScheduledSequence rejected for showToken=%s: preferences not found", show.getShowToken());
       throw new WebApplicationException(
           Response.status(Response.Status.BAD_REQUEST)
               .entity(PluginResponse.builder().message("Preferences not found").build())
@@ -730,6 +732,7 @@ public class PluginService {
   public PluginResponse updateViewerControl(ViewerControlRequest request) {
     Show show = showContext.getShow();
     if (show.getPreferences() == null) {
+      LOG.warnf("updateViewerControl rejected for showToken=%s: preferences not found", show.getShowToken());
       throw new WebApplicationException(
           Response.status(Response.Status.BAD_REQUEST)
               .entity(PluginResponse.builder().message("Preferences not found").build())
@@ -747,6 +750,7 @@ public class PluginService {
   public PluginResponse updateManagedPsa(ManagedPSARequest request) {
     Show show = showContext.getShow();
     if (show.getPreferences() == null) {
+      LOG.warnf("updateManagedPsa rejected for showToken=%s: preferences not found", show.getShowToken());
       throw new WebApplicationException(
           Response.status(Response.Status.BAD_REQUEST)
               .entity(PluginResponse.builder().message("Preferences not found").build())
