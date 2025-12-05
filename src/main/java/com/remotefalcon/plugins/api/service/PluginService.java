@@ -7,6 +7,8 @@ import com.remotefalcon.library.models.*;
 import com.remotefalcon.library.quarkus.entity.Show;
 import com.remotefalcon.plugins.api.context.ShowContext;
 import com.remotefalcon.plugins.api.model.*;
+
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
@@ -92,6 +94,8 @@ public class PluginService {
   public PluginResponse syncPlaylists(SyncPlaylistRequest request) {
     Show show = showContext.getShow();
     List<SyncPlaylistDetails> playlists = request.getPlaylists();
+    Log.infof("Received syncPlaylists request for %s. Playlist size: %s", show.getShowToken(),
+        playlists != null ? playlists.size() : 0);
     if (playlists.size() > this.sequenceLimit) {
       LOG.warnf("syncPlaylists rejected for showToken=%s: requestPlaylists=%d exceeds limit=%d",
           show.getShowToken(), playlists.size(), this.sequenceLimit);
