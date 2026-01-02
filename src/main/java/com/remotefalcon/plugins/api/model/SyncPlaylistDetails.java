@@ -14,4 +14,7 @@ public class SyncPlaylistDetails {
   private Integer playlistDuration;
   private Integer playlistIndex;
   private String playlistType;
+  private String mediaTitle;
+  private String mediaArtist;
+  private String mediaAlbumUrl;
 }

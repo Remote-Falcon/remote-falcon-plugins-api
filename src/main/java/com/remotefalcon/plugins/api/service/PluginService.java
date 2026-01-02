@@ -219,9 +219,10 @@ public class PluginService {
       if (!existingSequences.contains(normalizedName)) {
         Sequence newSequence = Sequence.builder()
             .active(true)
-            .displayName(playlistName)
+            .displayName(StringUtils.defaultIfBlank(playlistInRequest.getMediaTitle(), playlistName))
             .duration(playlistInRequest.getPlaylistDuration())
-            .imageUrl("")
+            .imageUrl(StringUtils.defaultString(playlistInRequest.getMediaAlbumUrl()))
+            .artist(StringUtils.defaultString(playlistInRequest.getMediaArtist()))
             .index(playlistInRequest.getPlaylistIndex() != null ? playlistInRequest.getPlaylistIndex() : -1)
             .name(playlistName)
             .order(atomicSequenceOrder.get())
@@ -241,6 +242,18 @@ public class PluginService {
               sequence.setDuration(playlistInRequest.getPlaylistDuration());
               sequence.setType(playlistInRequest.getPlaylistType() == null ? "SEQUENCE" : playlistInRequest.getPlaylistType());
               sequence.setActive(true);
+              if (StringUtils.isNotBlank(playlistInRequest.getMediaTitle())
+                  && !StringUtils.equals(sequence.getDisplayName(), playlistInRequest.getMediaTitle())) {
+                sequence.setDisplayName(playlistInRequest.getMediaTitle());
+              }
+              if (StringUtils.isNotBlank(playlistInRequest.getMediaArtist())
+                  && !StringUtils.equals(sequence.getArtist(), playlistInRequest.getMediaArtist())) {
+                sequence.setArtist(playlistInRequest.getMediaArtist());
+              }
+              if (StringUtils.isNotBlank(playlistInRequest.getMediaAlbumUrl())
+                  && !StringUtils.equals(sequence.getImageUrl(), playlistInRequest.getMediaAlbumUrl())) {
+                sequence.setImageUrl(playlistInRequest.getMediaAlbumUrl());
+              }
               sequencesToSync.add(sequence);
             });
       }
@@ -774,4 +787,3 @@ public class PluginService {
     Show.mongoCollection().updateOne(Filters.eq("showToken", show.getShowToken()), Updates.set("lastFppHeartbeat", LocalDateTime.now()));
   }
 }
-
