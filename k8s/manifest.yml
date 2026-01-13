@@ -109,7 +109,7 @@ spec:
       app: #{Application}#
   endpoints:
     - port: http
-      path: /remote-falcon-plugins-api/q/metrics
+      path: /q/metrics
       interval: 30s
 ---
 apiVersion: networking.k8s.io/v1
